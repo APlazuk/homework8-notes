@@ -1,5 +1,6 @@
 package pl.aplazuk.homework8notes.service;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,8 +25,19 @@ public class NoteService {
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ)
-    public Optional<Note> findById(Long id) {
-        return noteRepo.findById(id);
+    public Note findById(Long id) {
+        return noteRepo.findById(id).orElseThrow(() -> new NoteNotFoundException("No note has been found with id: " + id));
+    }
+
+    @Transactional
+    public void applyNewNoteTitleByAuthor(String author) {
+        List<Note> notes = noteRepo.findAll();
+        String randomTitle = RandomStringUtils.randomAlphabetic(10);
+        notes.stream().filter(note -> note.getAuthor().equals(author)).findFirst()
+                .ifPresent(note -> {
+                    note.setTitle(randomTitle);
+                    noteRepo.save(note);
+                });
     }
 
     @Transactional
@@ -35,8 +47,18 @@ public class NoteService {
 
     @Transactional
     public void editNote(Note note) {
-        noteRepo.save(note);
+        Optional<Note> optionalNote = noteRepo.findById(note.getId());
+        optionalNote
+                .ifPresentOrElse(noteRepo::save, () -> {
+                    throw new NoteNotFoundException("No note has been found with id: " + note.getId());
+                });
     }
 
-
+    @Transactional
+    public void deleteNote(Long id) {
+        noteRepo.findById(id)
+                .ifPresentOrElse(noteRepo::delete, () -> {
+                    throw new NoteNotFoundException("No note has been found with id: " + id);
+                });
+    }
 }

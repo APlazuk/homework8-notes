@@ -9,7 +9,6 @@ import pl.aplazuk.homework8notes.model.Note;
 import pl.aplazuk.homework8notes.service.NoteService;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/notes")
@@ -29,23 +28,25 @@ public class NoteController {
 
     @GetMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Note> getNote(@PathVariable Long id) {
-        Optional<Note> noteById = noteService.findById(id);
-        return noteById.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        Note noteById = noteService.findById(id);
+        return noteById != null ? ResponseEntity.ok(noteById) : ResponseEntity.notFound().build();
     }
 
     @PostMapping(value = "/add", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Note> saveNote(@RequestBody @Valid Note note) {
         Note savedNote = noteService.saveNote(note);
-        return savedNote != null ? ResponseEntity.ok(savedNote) : ResponseEntity.notFound().build();
+        return savedNote != null ? ResponseEntity.status(HttpStatus.CREATED).body(savedNote) : ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
-    @PostMapping(value = "/edit", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/edit", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> editNote(@RequestBody @Valid Note note) {
-        Optional<Note> optionalNote = noteService.findById(note.getId());
-        if (optionalNote.isPresent()) {
-            noteService.editNote(note);
-            return ResponseEntity.ok("Note with id " + note.getId() + " has been edited");
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Note with given id is not found: " + note.getId());
+        noteService.editNote(note);
+        return ResponseEntity.ok("Note with id " + note.getId() + " has been edited");
+    }
+
+    @DeleteMapping(value = "/delete/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> deleteNote(@PathVariable Long id) {
+        noteService.deleteNote(id);
+        return ResponseEntity.ok().build();
     }
 }
