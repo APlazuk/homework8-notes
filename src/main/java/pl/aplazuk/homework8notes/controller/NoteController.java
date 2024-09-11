@@ -46,7 +46,7 @@ public class NoteController {
 
     @DeleteMapping(value = "/delete/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> deleteNote(@PathVariable Long id) {
-        noteService.deleteNote(id);
+        noteService.deleteNoteById(id);
         return ResponseEntity.ok().build();
     }
 }

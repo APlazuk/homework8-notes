@@ -30,12 +30,13 @@ public class NoteService {
     }
 
     @Transactional
-    public void applyNewNoteTitleByAuthor(String author) {
+    public void applyNewNoteContentByTitle(String title) {
         List<Note> notes = noteRepo.findAll();
-        String randomTitle = RandomStringUtils.randomAlphabetic(10);
-        notes.stream().filter(note -> note.getAuthor().equals(author)).findFirst()
+        String randomContent = RandomStringUtils.randomAlphabetic(10);
+        Optional<Note> optionalNote = notes.stream().filter(note -> title.equals(note.getTitle())).findFirst();
+        optionalNote
                 .ifPresent(note -> {
-                    note.setTitle(randomTitle);
+                    note.setContent(randomContent);
                     noteRepo.save(note);
                 });
     }
@@ -48,14 +49,15 @@ public class NoteService {
     @Transactional
     public void editNote(Note note) {
         Optional<Note> optionalNote = noteRepo.findById(note.getId());
-        optionalNote
-                .ifPresentOrElse(noteRepo::save, () -> {
-                    throw new NoteNotFoundException("No note has been found with id: " + note.getId());
-                });
+        if (optionalNote.isPresent()) {
+            noteRepo.save(note);
+        } else {
+            throw new NoteNotFoundException("No note has been found with id: " + note.getId());
+        }
     }
 
     @Transactional
-    public void deleteNote(Long id) {
+    public void deleteNoteById(Long id) {
         noteRepo.findById(id)
                 .ifPresentOrElse(noteRepo::delete, () -> {
                     throw new NoteNotFoundException("No note has been found with id: " + id);
