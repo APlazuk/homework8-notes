@@ -43,7 +43,12 @@ public class NoteService {
 
     @Transactional
     public Note saveNote(Note note) {
-        return noteRepo.save(note);
+        if (note.getId() == null) {
+            return noteRepo.save(note);
+        } else if (noteRepo.findById(note.getId()).isPresent()) {
+            throw new NoteAlreadyExistsException("Note with given id already exists: " + note.getId());
+        }
+        return null;
     }
 
     @Transactional

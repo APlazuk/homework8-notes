@@ -35,7 +35,7 @@ public class NoteController {
     @PostMapping(value = "/add", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Note> saveNote(@RequestBody @Valid Note note) {
         Note savedNote = noteService.saveNote(note);
-        return savedNote != null ? ResponseEntity.status(HttpStatus.CREATED).body(savedNote) : ResponseEntity.status(HttpStatus.CONFLICT).build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedNote);
     }
 
     @PutMapping(value = "/edit", produces = MediaType.APPLICATION_JSON_VALUE)
