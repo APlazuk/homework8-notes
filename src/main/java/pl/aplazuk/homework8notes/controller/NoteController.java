@@ -9,6 +9,7 @@ import pl.aplazuk.homework8notes.model.Note;
 import pl.aplazuk.homework8notes.service.NoteService;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/notes")
@@ -28,8 +29,8 @@ public class NoteController {
 
     @GetMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Note> getNote(@PathVariable Long id) {
-        Note noteById = noteService.findById(id);
-        return noteById != null ? ResponseEntity.ok(noteById) : ResponseEntity.notFound().build();
+        Optional<Note> optionalNote = noteService.findById(id);
+        return optionalNote.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping(value = "/add", produces = MediaType.APPLICATION_JSON_VALUE)

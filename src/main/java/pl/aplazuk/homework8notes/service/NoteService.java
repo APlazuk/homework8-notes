@@ -25,8 +25,8 @@ public class NoteService {
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ)
-    public Note findById(Long id) {
-        return noteRepo.findById(id).orElseThrow(() -> new NoteNotFoundException("No note has been found with id: " + id));
+    public Optional<Note> findById(Long id) {
+        return noteRepo.findById(id);
     }
 
     @Transactional
@@ -43,12 +43,11 @@ public class NoteService {
 
     @Transactional
     public Note saveNote(Note note) {
-        if (note.getId() == null) {
-            return noteRepo.save(note);
-        } else if (noteRepo.findById(note.getId()).isPresent()) {
-            throw new NoteAlreadyExistsException("Note with given id already exists: " + note.getId());
+        if (note.getId() != null && noteRepo.existsById(note.getId())) {
+            throw new NoteAlreadyExistsException(
+                    "Note with given id already exists: " + note.getId());
         }
-        return null;
+        return noteRepo.save(note);
     }
 
     @Transactional
@@ -63,9 +62,10 @@ public class NoteService {
 
     @Transactional
     public void deleteNoteById(Long id) {
-        noteRepo.findById(id)
-                .ifPresentOrElse(noteRepo::delete, () -> {
-                    throw new NoteNotFoundException("No note has been found with id: " + id);
-                });
+        if (noteRepo.existsById(id)) {
+            noteRepo.deleteById(id);
+        } else {
+            throw new NoteNotFoundException("No note has been found with id: " + id);
+        }
     }
 }

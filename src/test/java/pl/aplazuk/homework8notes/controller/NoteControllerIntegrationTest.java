@@ -56,10 +56,10 @@ class NoteControllerIntegrationTest {
                 .andExpect(MockMvcResultMatchers.status().is(HttpStatus.NOT_FOUND.value()))
                 .andReturn();
 
-        String actual = mvcResult.getResolvedException().getMessage();
+        int actual = mvcResult.getResponse().getStatus();
 
         assertNotNull(actual);
-        assertEquals("No note has been found with id: 10", actual);
+        assertEquals(HttpStatus.NOT_FOUND.value(), actual);
     }
 
     @Test
@@ -78,6 +78,8 @@ class NoteControllerIntegrationTest {
 
         Note actual = objectMapper.readValue(mvcResult.getResponse().getContentAsString(), Note.class);
         assertNotNull(actual);
+        assertNotNull(actual.getId());
+        assertEquals(5, actual.getId());
     }
 
     @Test

@@ -39,6 +39,7 @@ class NoteServiceTest {
         note2.setId(2L);
 
         doReturn(Optional.of(note1)).when(noteRepo).findById(1L);
+        doReturn(true).when(noteRepo).existsById(1L);
 
         List<Note> notes = List.of(note1, note2);
         doReturn(notes).when(noteRepo).findAll();
@@ -47,27 +48,16 @@ class NoteServiceTest {
     @Test
     public void shouldReturnSelectedNoteById() {
         //when
-        Note note = noteService.findById(1L);
+        Optional<Note> note = noteService.findById(1L);
         //then
         assertNotNull(note);
-        assertEquals(note.getAuthor(), "author1");
-        assertEquals(note.getTitle(), "title1");
-        assertEquals(note.getContent(), "content1");
-        assertEquals(note.getId(), 1L);
+        assertEquals(note.get().getAuthor(), "author1");
+        assertEquals(note.get().getTitle(), "title1");
+        assertEquals(note.get().getContent(), "content1");
+        assertEquals(note.get().getId(), 1L);
         assertDoesNotThrow(() -> {
             noteService.findById(1L);
         });
-    }
-
-    @Test
-    public void shouldThrowExceptionAndNotReturnAnyNoteById() {
-        //when
-        NoteNotFoundException noteNotFoundException = assertThrows(NoteNotFoundException.class, () -> {
-            noteService.findById(3L);
-        });
-
-        //then
-        assertEquals("No note has been found with id: 3", noteNotFoundException.getMessage());
     }
 
     @Test
@@ -94,7 +84,47 @@ class NoteServiceTest {
     }
 
     @Test
-    public void shouldUpdateSelectedNote() {
+    public void shouldSaveGivenNote() throws NoteAlreadyExistsException {
+        //given
+        Note note = new Note();
+        note.setAuthor("author1");
+        note.setTitle("title1");
+        note.setContent("content1");
+        note.setId(2L);
+
+        //when
+        noteService.saveNote(note);
+
+        //then
+        verify(noteRepo, times(1)).save(noteCaptor.capture());
+        Note actual = noteCaptor.getValue();
+        assertNotNull(actual);
+        assertEquals("author1", actual.getAuthor());
+        assertEquals("title1", actual.getTitle());
+        assertEquals("content1", actual.getContent());
+        assertEquals(2L, actual.getId());
+    }
+
+    @Test
+    public void shouldThrowExceptionAndNotSaveGivenNote() {
+        //given
+        Note note = new Note();
+        note.setAuthor("author1");
+        note.setTitle("title1");
+        note.setContent("content1");
+        note.setId(1L);
+
+        //when
+        NoteAlreadyExistsException noteAlreadyExistsException = assertThrows(NoteAlreadyExistsException.class, () -> {
+            noteService.saveNote(note);
+        });
+
+        //then
+        assertEquals("Note with given id does already exist: 1", noteAlreadyExistsException.getMessage());
+    }
+
+    @Test
+    public void shouldUpdateSelectedNote() throws NoteNotFoundException {
         //given
         Note note = new Note();
         note.setAuthor("new author");
@@ -131,23 +161,21 @@ class NoteServiceTest {
     }
 
     @Test
-    public void shouldDeleteSelectedNoteById() {
+    public void shouldDeleteSelectedNoteById() throws NoteNotFoundException {
         //when
         noteService.deleteNoteById(1L);
 
         //then
-        verify(noteRepo, times(1)).findById(1L);
-        verify(noteRepo, times(1)).delete(noteCaptor.capture());
-        Note actual = noteCaptor.getValue();
-        assertEquals("title1", actual.getTitle());
-        assertEquals("content1", actual.getContent());
-        assertEquals("author1", actual.getAuthor());
+        verify(noteRepo, times(1)).existsById(1L);
+        verify(noteRepo, times(1)).deleteById(1L);
     }
 
     @Test
     public void shouldThrowExceptionAndNotDeleteAnyNoteById() {
         //when
-        NoteNotFoundException noteNotFoundException = assertThrows(NoteNotFoundException.class, () -> {noteService.deleteNoteById(3L);});
+        NoteNotFoundException noteNotFoundException = assertThrows(NoteNotFoundException.class, () -> {
+            noteService.deleteNoteById(3L);
+        });
 
         //then
         assertEquals("No note has been found with id: 3", noteNotFoundException.getMessage());
