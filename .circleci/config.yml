@@ -2,15 +2,52 @@
 # Stacks detected: deps:java:.
 version: 2.1
 jobs:
-  test-java:
+  build:
     docker:
-      - image: cimg/openjdk:17.0
+      - image: cimg/openjdk:17.0.12
+        environment:
+          JDBC_DATABASE_URL: jdbc:mysql://mysql:3306/testdb
+          JDBC_DATABASE_USERNAME: user
+          JDBC_DATABASE_PASSWORD: pass
+
+      - image: cimg/mysql:8.0
+        name: mysql
+        environment:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: testdb
+          MYSQL_USER: user
+          MYSQL_PASSWORD: pass
+
+    working_directory: ~/homework8-notes
+
+    environment:
+      MAVEN_OPTS: -Xmx3200m
+
     steps:
       - checkout
       - run:
+          name: Waiting for MySQL to be ready
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z mysql 3306 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for MySQL && exit 1
+      - run:
+          name: Install MySQL client
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y default-mysql-client
+      - run:
+          name: Test MySQL connection
+          command: |
+            mysql -h mysql -u user -ppass testdb -e "SELECT 1"
+      - run:
           name: Calculate cache key
           command: |-
-            find . -name 'pom.xml' -o -name 'gradlew*' -o -name '*.gradle*' | \
+            find . -name 'pom.xml' | \
                     sort | xargs cat > /tmp/CIRCLECI_CACHE_KEY
       - restore_cache:
           key: cache-{{ checksum "/tmp/CIRCLECI_CACHE_KEY" }}
@@ -22,19 +59,15 @@ jobs:
           key: cache-{{ checksum "/tmp/CIRCLECI_CACHE_KEY" }}
           paths:
             - ~/.m2/repository
+
   deploy:
-    # This is an example deploy job, not actually used by the workflow
     docker:
       - image: cimg/base:stable
     steps:
-      # Replace this with steps to deploy to users
       - run:
           name: deploy
           command: '#e.g. ./deploy.sh'
 workflows:
   build-and-test:
     jobs:
-      - test-java
-    # - deploy:
-    #     requires:
-    #       - test-java
+      - build
